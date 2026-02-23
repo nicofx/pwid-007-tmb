@@ -1,0 +1,43 @@
+{
+  "name": "pwid-007-tmb",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.6.2",
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter @tmb/runtime --filter web --filter api dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "format": "prettier . --write",
+    "format:check": "prettier . --check",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
+    "@typescript-eslint/parser": "^8.26.1",
+    "concurrently": "^9.1.2",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-import": "^2.31.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0",
+    "prettier": "^3.5.3",
+    "typescript": "^5.8.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,cjs,mjs,json,md,yml,yaml}": [
+      "prettier --write"
+    ],
+    "apps/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ],
+    "packages/**/*.{ts,tsx}": [
+      "eslint --fix"
+    ]
+  }
+}

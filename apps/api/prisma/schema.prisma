@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SessionStatus {
+  ACTIVE
+  ENDED
+}
+
+enum TelemetrySource {
+  server
+  client
+}
+
+model Session {
+  id               String        @id
+  capsuleId        String
+  presetId         String?
+  seed             String
+  status           SessionStatus @default(ACTIVE)
+  rev              Int           @default(0)
+  lastTurnSeq      Int           @default(0)
+  currentStateJson Json
+  lastPacketJson   Json
+  variabilityTagsJson Json?
+  memoryJson       Json?
+  sceneSummaryJson Json?
+  runSummaryJson   Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  turns     Turn[]
+  snapshots Snapshot[]
+
+  @@index([capsuleId])
+  @@index([updatedAt])
+}
+
+model Turn {
+  id          String   @id @default(cuid())
+  sessionId   String
+  turnId      String
+  seq         Int
+  requestJson Json
+  outcomeJson Json
+  deltasJson  Json?
+  packetJson  Json
+  createdAt   DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, turnId])
+  @@unique([sessionId, seq])
+  @@index([sessionId])
+}
+
+model Snapshot {
+  id        String   @id @default(cuid())
+  sessionId String
+  seq       Int
+  stateJson Json
+  createdAt DateTime @default(now())
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, seq])
+  @@index([sessionId])
+}
+
+model TelemetryEvent {
+  id          String          @id @default(cuid())
+  ts          DateTime
+  source      TelemetrySource
+  deviceId    String?
+  sessionId   String?
+  turnId      String?
+  eventName   String
+  payloadJson Json?
+  createdAt   DateTime        @default(now())
+
+  @@index([source])
+  @@index([sessionId])
+  @@index([turnId])
+  @@index([eventName])
+  @@index([ts])
+}

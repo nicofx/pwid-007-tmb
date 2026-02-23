@@ -1,0 +1,11 @@
+{
+  "name": "@tmb/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "files": [
+    "tsconfig.base.json",
+    "eslint.base.cjs",
+    "prettier.config.cjs"
+  ]
+}

@@ -1,17 +1,12 @@
-__pycache__/
-*.py[cod]
-*.so
+node_modules/
 
-.venv/
-venv/
-env/
-ENV/
-
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+.next/
+dist/
 coverage/
-htmlcov/
+
+.env
+.env.local
+.env.*.local
 
 .idea/
 .vscode/

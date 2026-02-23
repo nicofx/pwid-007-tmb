@@ -1,0 +1,38 @@
+[
+  {
+    "id": "default",
+    "label": "Default",
+    "description": "Balanced risk and clues.",
+    "dials": {
+      "riskTolerance": 0.5,
+      "costSeverity": 0.5,
+      "hintDensity": 0.5,
+      "pacing": 0.5
+    },
+    "tags": ["balanced", "baseline"]
+  },
+  {
+    "id": "guided",
+    "label": "Guided",
+    "description": "More forgiving outcomes and denser hints.",
+    "dials": {
+      "riskTolerance": 0.75,
+      "costSeverity": 0.35,
+      "hintDensity": 0.95,
+      "pacing": 0.45
+    },
+    "tags": ["onboarding", "hints_high"]
+  },
+  {
+    "id": "stealth",
+    "label": "Stealth",
+    "description": "Tighter margins, fewer hints, higher costs.",
+    "dials": {
+      "riskTolerance": 0.3,
+      "costSeverity": 0.8,
+      "hintDensity": 0.2,
+      "pacing": 0.6
+    },
+    "tags": ["hardcore", "low_hints"]
+  }
+]

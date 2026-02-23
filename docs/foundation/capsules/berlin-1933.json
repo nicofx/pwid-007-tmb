@@ -1,0 +1,273 @@
+{
+  "schemaVersion": "1.0.0",
+  "capsuleId": "berlin-1933",
+  "title": "Berlin 1933",
+  "synopsis": "Infiltrate a ministry archive and secure leverage before curfew.",
+  "roles": ["reporter", "courier"],
+  "presets": ["default", "stealth"],
+  "defaultRoleId": "reporter",
+  "defaultPresetId": "default",
+  "initial": {
+    "sceneId": "street-night",
+    "beatId": "arrival",
+    "locationId": "tram-stop",
+    "stateText": {
+      "suspicion": 10,
+      "tension": 20,
+      "clock": 0,
+      "risk": 15
+    }
+  },
+  "scenes": [
+    {
+      "id": "street-night",
+      "title": "Friedrichstrasse at Night",
+      "entryText": "A wet wind pushes posters against the tram shelter.",
+      "visual": {
+        "palette": "cold-amber",
+        "mood": "tense",
+        "backdrop": "tram-street"
+      },
+      "locations": [
+        { "id": "tram-stop", "label": "Tram Stop" },
+        { "id": "archive-door", "label": "Archive Door" }
+      ]
+    },
+    {
+      "id": "archive-hall",
+      "title": "Archive Hall",
+      "entryText": "Rows of folders and one sleeping clerk.",
+      "visual": {
+        "palette": "sepia",
+        "mood": "quiet",
+        "backdrop": "archive-room"
+      },
+      "locations": [
+        { "id": "desk", "label": "Duty Desk" },
+        { "id": "records", "label": "Records Shelf" }
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "officer",
+      "label": "Street Officer",
+      "locationId": "tram-stop",
+      "verbs": ["TALK", "OBSERVE"],
+      "risk": 0.3,
+      "rewards": { "leverage": ["officer-habit"] }
+    },
+    {
+      "id": "archive-lock",
+      "label": "Archive Lock",
+      "locationId": "archive-door",
+      "verbs": ["SEARCH", "USE", "MOVE"],
+      "risk": 0.5,
+      "rewards": { "clues": ["lock-model"] }
+    },
+    {
+      "id": "records-ledger",
+      "label": "Ledger",
+      "locationId": "records",
+      "verbs": ["SEARCH", "OBSERVE", "TAKE"],
+      "risk": 0.2,
+      "rewards": { "clues": ["transport-list"], "inventory": ["ledger-page"] }
+    }
+  ],
+  "beats": [
+    {
+      "id": "arrival",
+      "sceneId": "street-night",
+      "title": "Arrival",
+      "entryText": "You need an entry route before patrol rotation.",
+      "allowedVerbs": ["TALK", "OBSERVE", "SEARCH", "MOVE", "WAIT"],
+      "activeHotspots": ["officer", "archive-lock"],
+      "advanceRules": [
+        {
+          "nextBeatId": "infiltration",
+          "onOutcomes": ["SUCCESS", "PARTIAL"]
+        }
+      ]
+    },
+    {
+      "id": "infiltration",
+      "sceneId": "archive-hall",
+      "title": "Infiltration",
+      "entryText": "Inside, every minute increases exposure.",
+      "allowedVerbs": ["SEARCH", "OBSERVE", "TAKE", "MOVE", "WAIT"],
+      "activeHotspots": ["records-ledger"],
+      "advanceRules": [
+        {
+          "nextBeatId": "exfiltration",
+          "onOutcomes": ["SUCCESS", "PARTIAL"],
+          "clockAtLeast": 1
+        }
+      ]
+    },
+    {
+      "id": "exfiltration",
+      "sceneId": "archive-hall",
+      "title": "Exfiltration",
+      "allowedVerbs": ["MOVE", "WAIT", "OBSERVE"],
+      "activeHotspots": ["records-ledger"],
+      "end": {
+        "id": "clean-exit",
+        "title": "Out Before Curfew",
+        "text": "You leave with usable leverage before doors lock.",
+        "conditions": {
+          "clockAtLeast": 1,
+          "requiresClues": ["transport-list"]
+        }
+      }
+    }
+  ],
+  "worldEvents": {
+    "events": [
+      {
+        "eventId": "help_informer_whisper",
+        "flavor": "help",
+        "intensity": "soft",
+        "allowedBeats": ["arrival"],
+        "triggers": {
+          "allOf": [
+            { "kind": "state", "metric": "tension", "op": "gte", "value": 20 },
+            { "kind": "repetition", "mode": "verb", "key": "OBSERVE", "op": "gte", "value": 1 }
+          ]
+        },
+        "effects": {
+          "addClue": ["lock-model"],
+          "stateDelta": { "tension": -2 }
+        },
+        "fairnessCompensation": true,
+        "diegeticTextTemplate": "A factory clerk murmurs the lock brand before vanishing into the tram crowd."
+      },
+      {
+        "eventId": "help_guard_shift_delay",
+        "flavor": "help",
+        "intensity": "soft",
+        "allowedScenes": ["street-night"],
+        "triggers": {
+          "allOf": [{ "kind": "state", "metric": "clock", "op": "lte", "value": 2 }]
+        },
+        "effects": {
+          "stateDelta": { "clock": -1, "risk": -2 }
+        },
+        "fairnessCompensation": true,
+        "diegeticTextTemplate": "A tram derailment stalls the patrol rotation by a few precious minutes."
+      },
+      {
+        "eventId": "help_courtyard_shadow",
+        "flavor": "help",
+        "intensity": "strong",
+        "allowedBeats": ["infiltration"],
+        "cooldownKey": "strong_help",
+        "triggers": {
+          "allOf": [
+            { "kind": "state", "metric": "suspicion", "op": "gte", "value": 14 },
+            { "kind": "state", "metric": "tension", "op": "gte", "value": 18 }
+          ]
+        },
+        "effects": {
+          "toggleHotspots": { "enable": ["records-ledger"] },
+          "stateDelta": { "suspicion": -3, "risk": -4 }
+        },
+        "fairnessCompensation": true,
+        "diegeticTextTemplate": "The lamps flicker, and a deep hallway shadow gives you a safer line to the ledgers."
+      },
+      {
+        "eventId": "shift_street_checks_reassigned",
+        "flavor": "shift",
+        "intensity": "soft",
+        "allowedScenes": ["street-night"],
+        "triggers": {
+          "allOf": [
+            { "kind": "repetition", "mode": "target", "key": "officer", "op": "gte", "value": 1 }
+          ]
+        },
+        "effects": {
+          "toggleLocations": { "enable": ["archive-door"] },
+          "stateDelta": { "clock": 1 }
+        },
+        "diegeticTextTemplate": "A whistle call pulls street checks eastward, opening a narrow route to the archive door."
+      },
+      {
+        "eventId": "shift_records_cart_arrives",
+        "flavor": "shift",
+        "intensity": "soft",
+        "allowedBeats": ["infiltration"],
+        "triggers": {
+          "allOf": [{ "kind": "state", "metric": "clock", "op": "gte", "value": 1 }]
+        },
+        "effects": {
+          "stateDelta": { "risk": 2 },
+          "toggleHotspots": { "enable": ["records-ledger"] }
+        },
+        "diegeticTextTemplate": "A records cart rattles in, changing cover and sightlines around the shelf."
+      },
+      {
+        "eventId": "shift_clerk_patrol_route",
+        "flavor": "shift",
+        "intensity": "strong",
+        "allowedBeats": ["exfiltration"],
+        "cooldownKey": "strong_shift",
+        "triggers": {
+          "allOf": [{ "kind": "state", "metric": "risk", "op": "gte", "value": 16 }]
+        },
+        "effects": {
+          "stateDelta": { "clock": 1, "tension": 2 },
+          "npcsDelta": { "add": ["officer"] }
+        },
+        "diegeticTextTemplate": "A clerk changes route and starts shadowing corridor sounds near your exit line."
+      },
+      {
+        "eventId": "friction_roving_patrol",
+        "flavor": "friction",
+        "intensity": "soft",
+        "allowedScenes": ["street-night"],
+        "triggers": {
+          "allOf": [
+            { "kind": "state", "metric": "suspicion", "op": "gte", "value": 10 },
+            { "kind": "repetition", "mode": "verb", "key": "SEARCH", "op": "gte", "value": 1 }
+          ]
+        },
+        "effects": {
+          "stateDelta": { "suspicion": 2, "clock": 1 },
+          "addLeverage": ["officer-habit"]
+        },
+        "fairnessCompensation": true,
+        "diegeticTextTemplate": "A roving patrol sweeps the curb, forcing you to move under tighter timing."
+      },
+      {
+        "eventId": "friction_lock_jams",
+        "flavor": "friction",
+        "intensity": "strong",
+        "allowedBeats": ["arrival", "infiltration"],
+        "cooldownKey": "strong_friction",
+        "triggers": {
+          "allOf": [{ "kind": "state", "metric": "clock", "op": "gte", "value": 1 }]
+        },
+        "effects": {
+          "stateDelta": { "tension": 4, "risk": 3 },
+          "toggleHotspots": { "disable": ["archive-lock"], "enable": ["officer"] },
+          "addClue": ["lock-model"]
+        },
+        "fairnessCompensation": true,
+        "diegeticTextTemplate": "The archive lock sticks hard; you must reroute through social cover before trying again."
+      }
+    ],
+    "overrides": {
+      "budget": {
+        "sceneStrongMax": 1,
+        "sceneSoftMax": 2,
+        "capsuleStrongMax": 2,
+        "capsuleSoftMax": 4,
+        "strongCooldownTurns": 3
+      },
+      "mix": {
+        "help": 0.3,
+        "shift": 0.4,
+        "friction": 0.3
+      }
+    }
+  }
+}
