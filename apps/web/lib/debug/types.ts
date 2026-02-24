@@ -9,7 +9,10 @@ export type DebugActionSource =
   | 'overlay'
   | 'move'
   | 'iu'
-  | 'resume_trace';
+  | 'resume_trace'
+  | 'guidance'
+  | 'blocked_alternative'
+  | 'reset_run';
 
 export interface DebugTurnRequest {
   sessionId: string;
@@ -27,6 +30,7 @@ export interface DebugTurnEntry {
   receivedAt: string;
   latencyMs: number;
   idempotencyHit?: boolean;
+  narrativeProvider?: 'llm' | 'placeholder' | 'unknown';
 }
 
 export type DebugTab = 'request' | 'explain' | 'diff' | 'raw';

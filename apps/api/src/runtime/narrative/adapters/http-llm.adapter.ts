@@ -1,22 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import type { ILlmAdapter, LlmGenerateInput } from './llm.adapter';
+import { RuntimeConfigStore } from '../../runtime-config.store';
 
 @Injectable()
 export class HttpLlmAdapter implements ILlmAdapter {
+  constructor(private readonly runtimeConfigStore: RuntimeConfigStore) {}
+
   async generate(input: LlmGenerateInput): Promise<string> {
-    const baseUrl = process.env.LLM_BASE_URL;
-    const apiKey = process.env.LLM_API_KEY;
-    const model = process.env.LLM_MODEL ?? 'default-model';
+    const runtimeConfig = this.runtimeConfigStore.get();
+    const baseUrl = runtimeConfig.llmBaseUrl;
+    const apiKey = runtimeConfig.llmApiKey;
+    const model = runtimeConfig.llmModel;
 
     if (!baseUrl || !apiKey) {
       throw new Error('LLM_NOT_CONFIGURED');
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(
-      () => controller.abort(),
-      Number(process.env.LLM_TIMEOUT_MS ?? 1600)
-    );
+    const timeout = setTimeout(() => controller.abort(), runtimeConfig.narrativeTimeoutMs);
 
     try {
       const response = await fetch(`${baseUrl}/generate`, {

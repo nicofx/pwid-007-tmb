@@ -2,6 +2,7 @@ import { NarrativeGateway } from './narrative.gateway';
 import { PlaceholderNarrativeService } from './placeholder-narrative.service';
 import type { NarrativeContext } from './narrative.types';
 import type { TurnPacket } from '@tmb/contracts';
+import type { RuntimeConfigStore } from '../runtime-config.store';
 
 function packet(): TurnPacket {
   return {
@@ -62,14 +63,20 @@ const context: NarrativeContext = {
 };
 
 describe('NarrativeGateway', () => {
-  const originalMode = process.env.NARRATIVE_MODE;
-
-  afterEach(() => {
-    process.env.NARRATIVE_MODE = originalMode;
-  });
+  function configStore(mode: 'placeholder' | 'llm' | 'hybrid'): RuntimeConfigStore {
+    return {
+      get: () => ({
+        narrativeMode: mode,
+        llmAdapter: 'mock',
+        llmModel: 'mock-model',
+        narrativeTimeoutMs: 1600,
+        narrativeCacheSize: 500,
+        wedEnabled: true
+      })
+    } as RuntimeConfigStore;
+  }
 
   it('uses placeholder mode directly', async () => {
-    process.env.NARRATIVE_MODE = 'placeholder';
     const placeholder = new PlaceholderNarrativeService();
     const llm = {
       render: jest.fn().mockResolvedValue({
@@ -79,7 +86,7 @@ describe('NarrativeGateway', () => {
         cacheHit: false
       })
     };
-    const gateway = new NarrativeGateway(placeholder, llm as never);
+    const gateway = new NarrativeGateway(placeholder, llm as never, configStore('placeholder'));
     const result = await gateway.renderTurnNarrative({
       sessionId: 'session-1',
       turnId: 'turn-1',
@@ -92,12 +99,11 @@ describe('NarrativeGateway', () => {
   });
 
   it('falls back when llm provider fails', async () => {
-    process.env.NARRATIVE_MODE = 'llm';
     const placeholder = new PlaceholderNarrativeService();
     const llm = {
       render: jest.fn().mockRejectedValue(new Error('boom'))
     };
-    const gateway = new NarrativeGateway(placeholder, llm as never);
+    const gateway = new NarrativeGateway(placeholder, llm as never, configStore('llm'));
     const result = await gateway.renderTurnNarrative({
       sessionId: 'session-1',
       turnId: 'turn-1',

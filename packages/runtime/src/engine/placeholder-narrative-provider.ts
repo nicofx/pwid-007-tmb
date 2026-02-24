@@ -16,7 +16,7 @@ export class PlaceholderNarrativeProvider {
     if (input.blockedReason) {
       blocks.push({
         kind: 'SYSTEM' as const,
-        text: `Blocked: ${input.blockedReason}. Try one of the suggested actions.`
+        text: `Bloqueado: ${input.blockedReason}. Probá una de las acciones sugeridas.`
       });
     } else {
       blocks.push({

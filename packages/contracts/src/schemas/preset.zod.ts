@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import type { PresetDefinition, PresetDials } from '../preset.js';
+import {
+  DIAL_REGISTRY,
+  type PresetDefinition,
+  type PresetDials,
+  type PresetDialKey
+} from '../preset.js';
 
 const dialSchema = z.number().finite();
 
@@ -20,7 +25,7 @@ export const PresetDefinitionSchema = z.object({
 
 export function clampDial(value: number): number {
   if (Number.isNaN(value) || !Number.isFinite(value)) {
-    return 0.5;
+    return DIAL_REGISTRY.riskTolerance.default;
   }
   return Math.max(0, Math.min(1, value));
 }
@@ -31,10 +36,10 @@ export function clampPreset(preset: PresetDefinition): {
   clampNotes: string[];
 } {
   const nextDials: PresetDials = {
-    riskTolerance: clampDial(preset.dials.riskTolerance),
-    costSeverity: clampDial(preset.dials.costSeverity),
-    hintDensity: clampDial(preset.dials.hintDensity),
-    pacing: clampDial(preset.dials.pacing)
+    riskTolerance: clampByDial('riskTolerance', preset.dials.riskTolerance),
+    costSeverity: clampByDial('costSeverity', preset.dials.costSeverity),
+    hintDensity: clampByDial('hintDensity', preset.dials.hintDensity),
+    pacing: clampByDial('pacing', preset.dials.pacing)
   };
 
   const clampNotes: string[] = [];
@@ -66,4 +71,55 @@ export function validatePreset(
   }
 
   return { ok: true, value: parsed.data };
+}
+
+export interface PresetValidationIssue {
+  path: string;
+  message: string;
+  code: 'PRESET_INVALID' | 'UNKNOWN_DIAL';
+}
+
+export function validatePresetDetailed(
+  input: unknown
+): { ok: true; value: PresetDefinition } | { ok: false; issues: PresetValidationIssue[] } {
+  const parsed = PresetDefinitionSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      issues: parsed.error.issues.map((issue) => ({
+        path: issue.path.length > 0 ? issue.path.join('.') : '$',
+        message: issue.message,
+        code: 'PRESET_INVALID'
+      }))
+    };
+  }
+
+  if (typeof input === 'object' && input !== null) {
+    const dials = (input as { dials?: unknown }).dials;
+    if (typeof dials === 'object' && dials !== null) {
+      const unknown = Object.keys(dials as Record<string, unknown>).filter(
+        (key) => !(key in DIAL_REGISTRY)
+      );
+      if (unknown.length > 0) {
+        return {
+          ok: false,
+          issues: unknown.map((key) => ({
+            path: `dials.${key}`,
+            message: `Unknown dial ${key}`,
+            code: 'UNKNOWN_DIAL'
+          }))
+        };
+      }
+    }
+  }
+
+  return { ok: true, value: parsed.data };
+}
+
+function clampByDial(key: PresetDialKey, value: number): number {
+  const dial = DIAL_REGISTRY[key];
+  if (Number.isNaN(value) || !Number.isFinite(value)) {
+    return dial.default;
+  }
+  return Math.max(dial.min, Math.min(dial.max, value));
 }

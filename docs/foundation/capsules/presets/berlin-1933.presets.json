@@ -24,15 +24,27 @@
     "tags": ["onboarding", "hints_high"]
   },
   {
-    "id": "stealth",
-    "label": "Stealth",
-    "description": "Tighter margins, fewer hints, higher costs.",
+    "id": "hardcore",
+    "label": "Hardcore",
+    "description": "Tighter margins, fewer hints, and higher costs.",
     "dials": {
-      "riskTolerance": 0.3,
-      "costSeverity": 0.8,
-      "hintDensity": 0.2,
-      "pacing": 0.6
+      "riskTolerance": 0.25,
+      "costSeverity": 0.9,
+      "hintDensity": 0.15,
+      "pacing": 0.65
     },
     "tags": ["hardcore", "low_hints"]
+  },
+  {
+    "id": "chaos-lite",
+    "label": "Chaos Lite",
+    "description": "Swingier outcomes with medium guidance and faster tempo feel.",
+    "dials": {
+      "riskTolerance": 0.6,
+      "costSeverity": 0.65,
+      "hintDensity": 0.55,
+      "pacing": 0.8
+    },
+    "tags": ["chaos_lite", "swingy"]
   }
 ]

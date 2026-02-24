@@ -13,6 +13,7 @@ export type WedSkipReason =
   | 'BUDGET'
   | 'COOLDOWN'
   | 'MIX_CORRECTION'
+  | 'ANTI_REPEAT'
   | 'FAIRNESS';
 
 export interface SelectCandidateResult {
@@ -70,6 +71,15 @@ export class BudgetMixPolicy {
         filtered = withoutFriction;
         mixCorrectionApplied = true;
       }
+    }
+
+    const antiRepeat = filtered.filter(
+      (event) => !wedState.recentEvents.some((entry) => entry.endsWith(`:${event.eventId}`))
+    );
+    if (antiRepeat.length > 0) {
+      filtered = antiRepeat;
+    } else if (filtered.length > 0) {
+      return { skipReason: 'ANTI_REPEAT' };
     }
 
     const weighted = filtered.map((event) => ({

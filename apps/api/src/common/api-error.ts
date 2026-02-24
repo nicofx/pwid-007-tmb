@@ -29,4 +29,18 @@ export class ApiError {
       message: `Preset ${presetId} not found`
     });
   }
+
+  static deviceIdRequired(): BadRequestException {
+    return new BadRequestException({
+      code: 'DEVICE_ID_REQUIRED',
+      message: 'x-tmb-device-id header is required'
+    });
+  }
+
+  static deviceIdInvalid(): BadRequestException {
+    return new BadRequestException({
+      code: 'DEVICE_ID_INVALID',
+      message: 'x-tmb-device-id must be a valid UUID'
+    });
+  }
 }

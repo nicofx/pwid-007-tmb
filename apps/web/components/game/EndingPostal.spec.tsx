@@ -13,7 +13,7 @@ describe('EndingPostal', () => {
     );
 
     expect(screen.getByText('Out Before Curfew')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Play again'));
+    fireEvent.click(screen.getByText('Jugar de nuevo'));
     expect(onRestart).toHaveBeenCalledTimes(1);
   });
 });

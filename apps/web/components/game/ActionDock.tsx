@@ -1,5 +1,9 @@
 import type { ActionVerb, TurnPacket } from '@tmb/contracts';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { Button } from '@/components/ui/Button';
+import { Input } from '@/components/ui/Input';
+import { tTargetLabel } from '@/lib/i18n-content';
+import { tVerb } from '@/lib/i18n-game';
 
 interface ActionDockProps {
   inputText: string;
@@ -8,6 +12,7 @@ interface ActionDockProps {
   selectedTarget?: string;
   suggestedActions: NonNullable<TurnPacket['affordances']>['suggestedActions'];
   isProcessing: boolean;
+  lastLatencyMs?: number;
   onInputChange: (text: string) => void;
   onSelectVerb: (verb: ActionVerb) => void;
   onSelectChip: (chip: { verb: ActionVerb; targetId?: string; reason: string }) => void;
@@ -15,14 +20,26 @@ interface ActionDockProps {
 }
 
 export function ActionDock(props: ActionDockProps): React.ReactElement {
+  const inputRef = useRef<HTMLInputElement>(null);
   const canSubmit = useMemo(
     () => !props.isProcessing && (Boolean(props.selectedVerb) || props.inputText.trim().length > 0),
     [props.isProcessing, props.selectedVerb, props.inputText]
   );
 
+  useEffect(() => {
+    if (!props.isProcessing) {
+      inputRef.current?.focus();
+    }
+  }, [props.isProcessing]);
+
   return (
-    <section className="play-card action-dock">
-      <h2>Action Dock</h2>
+    <section className="play-card tmb-frame action-dock">
+      <h2>Panel de acciones</h2>
+      <p className="muted">
+        {props.isProcessing
+          ? 'Procesando turno...'
+          : `Latencia del último turno: ${props.lastLatencyMs ?? 0}ms`}
+      </p>
       <div className="verb-row">
         {props.allowedVerbs.map((verb) => (
           <button
@@ -33,7 +50,7 @@ export function ActionDock(props: ActionDockProps): React.ReactElement {
             onClick={() => props.onSelectVerb(verb)}
             suppressHydrationWarning
           >
-            {verb}
+            {tVerb(verb)}
           </button>
         ))}
       </div>
@@ -47,15 +64,16 @@ export function ActionDock(props: ActionDockProps): React.ReactElement {
             onClick={() => props.onSelectChip(chip)}
             suppressHydrationWarning
           >
-            {chip.verb} {chip.targetId ?? 'current'}
+            {tVerb(chip.verb)} {tTargetLabel(chip.targetId)}
           </button>
         ))}
       </div>
       <div className="input-row">
-        <input
+        <Input
+          ref={inputRef}
           value={props.inputText}
           onChange={(event) => props.onInputChange(event.target.value)}
-          placeholder="Describe your intent"
+          placeholder="Describí tu intención"
           disabled={props.isProcessing}
           suppressHydrationWarning
           onKeyDown={(event) => {
@@ -67,16 +85,17 @@ export function ActionDock(props: ActionDockProps): React.ReactElement {
             }
           }}
         />
-        <button
+        <Button
           type="button"
           onClick={props.onSubmit}
           disabled={!canSubmit}
+          variant="primary"
           suppressHydrationWarning
         >
           {props.isProcessing
-            ? 'Sending...'
-            : `Send ${props.selectedTarget ? `-> ${props.selectedTarget}` : ''}`}
-        </button>
+            ? 'Enviando...'
+            : `Enviar ${props.selectedTarget ? `-> ${tTargetLabel(props.selectedTarget)}` : ''}`}
+        </Button>
       </div>
     </section>
   );

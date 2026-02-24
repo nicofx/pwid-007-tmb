@@ -29,6 +29,7 @@ export interface WedState {
 
 export interface SessionState {
   sessionId: string;
+  seed: string;
   capsuleId: string;
   roleId: string;
   presetId: string;

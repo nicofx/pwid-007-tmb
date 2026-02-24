@@ -1,7 +1,9 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { deviceIdMiddleware } from './common/device-id.middleware';
 import { loadEnv } from './load-env';
 
 async function bootstrap(): Promise<void> {
@@ -14,8 +16,11 @@ async function bootstrap(): Promise<void> {
     origin: webOrigin,
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Admin-Token', 'X-Tmb-Device-Id'],
+    exposedHeaders: ['X-Tmb-Narrative-Provider']
   });
+
+  app.use(deviceIdMiddleware);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -32,6 +37,22 @@ async function bootstrap(): Promise<void> {
       logger.log(`${req.method} ${req.url} ${res.statusCode} ${durationMs}ms`);
     });
     next();
+  });
+
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Take Me Back API')
+    .setDescription('Explorador de endpoints de desarrollo')
+    .setVersion(process.env.APP_VERSION ?? '0.1.0')
+    .addApiKey({ type: 'apiKey', in: 'header', name: 'x-tmb-device-id' }, 'deviceId')
+    .build();
+  const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);
+  app.getHttpAdapter().get('/openapi.json', (_req: Request, res: Response) => {
+    res.json(swaggerDocument);
+  });
+  SwaggerModule.setup('api/docs', app, swaggerDocument, {
+    swaggerOptions: {
+      persistAuthorization: true
+    }
   });
 
   const port = Number(process.env.PORT ?? 3001);

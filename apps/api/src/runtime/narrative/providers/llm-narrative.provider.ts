@@ -6,6 +6,7 @@ import { HttpLlmAdapter } from '../adapters/http-llm.adapter';
 import { MockLlmAdapter } from '../adapters/mock-llm.adapter';
 import type { NarrativeContext, NarrativeProviderResult } from '../narrative.types';
 import { NarrativeGuardrailsService } from '../narrative-guardrails.service';
+import { RuntimeConfigStore } from '../../runtime-config.store';
 
 export class NarrativeProviderError extends Error {
   constructor(
@@ -21,7 +22,8 @@ export class LlmNarrativeProvider {
   constructor(
     private readonly guardrails: NarrativeGuardrailsService,
     private readonly httpAdapter: HttpLlmAdapter,
-    private readonly mockAdapter: MockLlmAdapter
+    private readonly mockAdapter: MockLlmAdapter,
+    private readonly runtimeConfigStore: RuntimeConfigStore
   ) {}
 
   async render(ctx: NarrativeContext): Promise<NarrativeProviderResult> {
@@ -69,8 +71,7 @@ export class LlmNarrativeProvider {
   }
 
   private getAdapter() {
-    const adapter = (process.env.LLM_ADAPTER ?? 'mock').toLowerCase();
-    if (adapter === 'http') {
+    if (this.runtimeConfigStore.get().llmAdapter === 'http') {
       return this.httpAdapter;
     }
     return this.mockAdapter;

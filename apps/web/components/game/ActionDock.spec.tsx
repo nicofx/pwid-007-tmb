@@ -20,7 +20,7 @@ describe('ActionDock', () => {
       />
     );
 
-    fireEvent.keyDown(screen.getByPlaceholderText('Describe your intent'), { key: 'Enter' });
+    fireEvent.keyDown(screen.getByPlaceholderText('Describí tu intención'), { key: 'Enter' });
     expect(onSubmit).toHaveBeenCalledTimes(1);
 
     rerender(
@@ -38,6 +38,6 @@ describe('ActionDock', () => {
       />
     );
 
-    expect(screen.getByText('Sending...')).toBeDisabled();
+    expect(screen.getByText('Enviando...')).toBeDisabled();
   });
 });

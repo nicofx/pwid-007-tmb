@@ -19,6 +19,7 @@ enum TelemetrySource {
 
 model Session {
   id               String        @id
+  profileId        String?
   capsuleId        String
   presetId         String?
   seed             String
@@ -34,10 +35,12 @@ model Session {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
+  profile   Profile?      @relation(fields: [profileId], references: [id], onDelete: SetNull)
   turns     Turn[]
   snapshots Snapshot[]
 
   @@index([capsuleId])
+  @@index([profileId])
   @@index([updatedAt])
 }
 
@@ -77,6 +80,7 @@ model TelemetryEvent {
   ts          DateTime
   source      TelemetrySource
   deviceId    String?
+  profileId   String?
   sessionId   String?
   turnId      String?
   eventName   String
@@ -84,8 +88,21 @@ model TelemetryEvent {
   createdAt   DateTime        @default(now())
 
   @@index([source])
+  @@index([profileId])
   @@index([sessionId])
   @@index([turnId])
   @@index([eventName])
   @@index([ts])
+}
+
+model Profile {
+  id          String    @id @default(uuid())
+  deviceId    String    @unique
+  displayName String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  sessions Session[]
+
+  @@index([updatedAt])
 }

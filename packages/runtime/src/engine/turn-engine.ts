@@ -41,6 +41,7 @@ export class TurnEngine {
 
   async startSession(params: {
     sessionId: string;
+    seed: string;
     capsuleId: string;
     roleId?: string;
     presetId?: string;
@@ -49,6 +50,7 @@ export class TurnEngine {
     const capsule = await this.deps.capsuleProvider.getCapsule(params.capsuleId);
     const state = this.stateFactory.createInitial({
       sessionId: params.sessionId,
+      seed: params.seed,
       capsule,
       roleId: params.roleId,
       presetId: params.presetId
@@ -103,7 +105,7 @@ export class TurnEngine {
     const variability = this.variabilityApplier.fromPreset(params.preset);
 
     const rng = this.deps.rngFactory.create(
-      `${params.state.sessionId}:${params.state.capsuleId}:${params.state.presetId}:${request.turnId}`
+      `${params.state.seed}:${params.state.capsuleId}:${params.state.presetId}:${request.turnId}`
     );
 
     const action = this.actionResolver.resolveAction(request, params.state, capsule);
@@ -187,9 +189,32 @@ export class TurnEngine {
             eventId: wedApplied.eventId,
             flavor: wedApplied.flavor,
             intensity: wedApplied.intensity,
-            compensationUsed: wedApplied.compensationUsed
+            compensationUsed: wedApplied.compensationUsed,
+            matchedCandidates: wedApplied.matchedCandidates,
+            totalEvents: wedApplied.totalEvents,
+            sceneBudgetUsed: wedApplied.state.wed.sceneBudgetUsed[wedApplied.state.sceneId] ?? {
+              soft: 0,
+              strong: 0
+            },
+            capsuleBudgetUsed: wedApplied.state.wed.capsuleBudgetUsed,
+            mixCounts: wedApplied.state.wed.mixCounts,
+            cooldowns: wedApplied.state.wed.cooldowns,
+            recentEvents: wedApplied.state.wed.recentEvents
           }
-        : { fired: false, skipReason: wedApplied.skipReason },
+        : {
+            fired: false,
+            skipReason: wedApplied.skipReason,
+            matchedCandidates: wedApplied.matchedCandidates,
+            totalEvents: wedApplied.totalEvents,
+            sceneBudgetUsed: wedApplied.state.wed.sceneBudgetUsed[wedApplied.state.sceneId] ?? {
+              soft: 0,
+              strong: 0
+            },
+            capsuleBudgetUsed: wedApplied.state.wed.capsuleBudgetUsed,
+            mixCounts: wedApplied.state.wed.mixCounts,
+            cooldowns: wedApplied.state.wed.cooldowns,
+            recentEvents: wedApplied.state.wed.recentEvents
+          },
       end: progression.end
     });
 

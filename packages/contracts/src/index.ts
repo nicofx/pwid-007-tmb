@@ -3,6 +3,7 @@ export * from './capsule-schema.js';
 export * from './narrative.js';
 export * from './preset.js';
 export * from './world-events.js';
+export * from './schemas/capsule.zod.js';
 export * from './schemas/narrative.zod.js';
 export * from './schemas/preset.zod.js';
 export * from './schemas/world-events.zod.js';

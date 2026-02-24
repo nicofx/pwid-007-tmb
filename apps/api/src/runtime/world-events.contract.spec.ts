@@ -1,4 +1,4 @@
-import { validateWorldEventCatalog } from '@tmb/contracts';
+import { validateWorldEventCatalog, validateWorldEventCatalogDetailed } from '@tmb/contracts';
 
 describe('WorldEvent contracts', () => {
   it('validates catalog shape', () => {
@@ -24,5 +24,17 @@ describe('WorldEvent contracts', () => {
     });
 
     expect(result.ok).toBe(false);
+  });
+
+  it('returns issue paths with detailed validator', () => {
+    const result = validateWorldEventCatalogDetailed({
+      events: [{ eventId: '', flavor: 'bad', intensity: 'soft', triggers: {}, effects: {} }]
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.issues.length).toBeGreaterThan(0);
+      expect(result.issues[0]?.path).toBeDefined();
+    }
   });
 });

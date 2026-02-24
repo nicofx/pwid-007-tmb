@@ -3,6 +3,7 @@ import type { SessionState } from '@tmb/runtime';
 
 interface SessionStateDbJson {
   sessionId: string;
+  seed: string;
   capsuleId: string;
   roleId: string;
   presetId: string;
@@ -24,6 +25,7 @@ interface SessionStateDbJson {
 export function sessionStateToJson(state: SessionState): SessionStateDbJson {
   return {
     sessionId: state.sessionId,
+    seed: state.seed,
     capsuleId: state.capsuleId,
     roleId: state.roleId,
     presetId: state.presetId,
@@ -47,6 +49,7 @@ export function jsonToSessionState(input: unknown): SessionState {
   const json = input as SessionStateDbJson;
   return {
     sessionId: json.sessionId,
+    seed: json.seed ?? `${json.sessionId}:${json.capsuleId}:${json.presetId}`,
     capsuleId: json.capsuleId,
     roleId: json.roleId,
     presetId: json.presetId,

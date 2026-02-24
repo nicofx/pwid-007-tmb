@@ -16,7 +16,9 @@ function buildAlternatives(
     alternatives.push({
       verb,
       targetId: hotspot?.id,
-      reason: hotspot ? `Try ${verb} on ${hotspot.label}` : `Try ${verb} in current beat`
+      reason: hotspot
+        ? `${verb} -> ${hotspot.label} is available now`
+        : `${verb} is available in this beat`
     });
   }
 
@@ -29,7 +31,7 @@ function buildAlternatives(
     alternatives.push({
       verb: fallbackVerb,
       targetId: hotspot.id,
-      reason: `Interact with ${hotspot.label}`
+      reason: `Use ${hotspot.label} to keep momentum`
     });
   }
 
@@ -48,7 +50,7 @@ export class BeatValidator {
     if (!beat.allowedVerbs.includes(action.verb)) {
       return {
         allowed: false,
-        blockedReason: `Verb ${action.verb} is not allowed in this beat`,
+        blockedReason: `Verb ${action.verb} is not available in beat ${beat.id}. Use one of: ${beat.allowedVerbs.join(', ')}`,
         alternatives
       };
     }
@@ -58,9 +60,16 @@ export class BeatValidator {
       !beat.activeHotspots.includes(action.targetId) &&
       action.targetId !== 'current'
     ) {
+      const activeLabels = beat.activeHotspots
+        .map((id) => capsule.hotspots.find((hotspot) => hotspot.id === id)?.label)
+        .filter((label): label is string => Boolean(label))
+        .slice(0, 4);
       return {
         allowed: false,
-        blockedReason: `Target ${action.targetId} is not active`,
+        blockedReason:
+          activeLabels.length > 0
+            ? `Target ${action.targetId} is not active in beat ${beat.id}. Active hotspots: ${activeLabels.join(', ')}`
+            : `Target ${action.targetId} is not active in beat ${beat.id}`,
         alternatives
       };
     }

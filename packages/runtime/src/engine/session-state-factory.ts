@@ -5,14 +5,16 @@ import type { SessionState } from '../domain/types.js';
 export class SessionStateFactory implements IStateFactory {
   createInitial(params: {
     sessionId: string;
+    seed: string;
     capsule: CapsuleSchema;
     roleId?: string;
     presetId?: string;
   }): SessionState {
-    const { sessionId, capsule, roleId, presetId } = params;
+    const { sessionId, seed, capsule, roleId, presetId } = params;
 
     return {
       sessionId,
+      seed,
       capsuleId: capsule.capsuleId,
       roleId: roleId ?? capsule.defaultRoleId,
       presetId: presetId ?? capsule.defaultPresetId,

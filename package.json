@@ -14,6 +14,9 @@
     "format:check": "prettier . --check",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
+    "capsule:lint": "pnpm --filter @tmb/contracts build && pnpm --filter @tmb/capsule-lint build && pnpm --filter @tmb/capsule-lint run capsule:lint",
+    "qa:scenario": "node tools/qa-runner/run-scenario.mjs",
+    "qa:presets": "node tools/qa-runner/run-presets.mjs",
     "prepare": "husky"
   },
   "devDependencies": {

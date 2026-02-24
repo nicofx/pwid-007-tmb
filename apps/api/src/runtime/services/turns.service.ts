@@ -48,21 +48,32 @@ export class TurnsService {
     private readonly placeholderNarrativeService: PlaceholderNarrativeService
   ) {}
 
-  async processTurn(dto: TurnDto): Promise<{ packet: TurnPacket; idempotencyHit: boolean }> {
+  async processTurn(dto: TurnDto, deviceId: string): Promise<{
+    packet: TurnPacket;
+    idempotencyHit: boolean;
+    narrativeProvider: 'llm' | 'placeholder' | 'unknown';
+  }> {
     const startedAt = Date.now();
 
     const session = await this.sessionRepo.getById(dto.sessionId);
     if (!session) {
       throw ApiError.sessionNotFound(dto.sessionId);
     }
+    const profileId = session.profileId ?? undefined;
 
     const idempotent = await this.turnRepo.getByTurnId(dto.sessionId, dto.turnId);
     if (idempotent) {
       const packet = jsonToTurnPacket(idempotent.packetJson);
+      const idempotentOutcome = idempotent.outcomeJson as {
+        narrativeProvider?: 'llm' | 'placeholder';
+      };
+      const narrativeProvider = idempotentOutcome?.narrativeProvider ?? 'unknown';
 
       await this.telemetryRepo.appendEvent({
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'turn_idempotent_hit',
@@ -82,7 +93,7 @@ export class TurnsService {
         })
       );
 
-      return { packet, idempotencyHit: true };
+      return { packet, idempotencyHit: true, narrativeProvider };
     }
 
     const engine = this.engineFactory.create();
@@ -205,7 +216,11 @@ export class TurnsService {
             } as Prisma.InputJsonValue,
             outcomeJson: {
               outcome: packetFinal.outcome,
-              blockedReason: result.blockedReason
+              blockedReason: result.blockedReason,
+              narrativeProvider,
+              narrativeFallback,
+              guardrailRejectReason: narrativeRejectReason ?? null,
+              narrativeLatencyMs: narrativeLatencyMs ?? null
             } as Prisma.InputJsonValue,
             deltasJson:
               Object.keys(result.deltas).length > 0 ? asJson(result.deltas) : Prisma.JsonNull,
@@ -245,6 +260,8 @@ export class TurnsService {
             data: {
               ts: new Date(),
               source: 'server',
+              deviceId,
+              profileId,
               sessionId: dto.sessionId,
               turnId: dto.turnId,
               eventName: 'snapshot_created',
@@ -257,7 +274,14 @@ export class TurnsService {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         const cached = await this.turnRepo.getByTurnId(dto.sessionId, dto.turnId);
         if (cached) {
-          return { packet: jsonToTurnPacket(cached.packetJson), idempotencyHit: true };
+          const cachedOutcome = cached.outcomeJson as {
+            narrativeProvider?: 'llm' | 'placeholder' | 'unknown';
+          };
+          return {
+            packet: jsonToTurnPacket(cached.packetJson),
+            idempotencyHit: true,
+            narrativeProvider: cachedOutcome.narrativeProvider ?? 'unknown'
+          };
         }
       }
       if (error instanceof Error && error.message.includes('SESSION_CONFLICT')) {
@@ -272,6 +296,8 @@ export class TurnsService {
       {
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'turn_processed',
@@ -281,15 +307,36 @@ export class TurnsService {
           presetId: selectedPreset.presetId,
           variability_tags: selectedPreset.tags,
           outcome: packetFinal.outcome,
+          outcome_kind: packetFinal.outcome,
           blockedReason: result.blockedReason,
+          suggestion_count: packetFinal.affordances?.suggestedActions.length ?? 0,
+          delta_magnitude: {
+            suspicion: Math.abs(
+              (packetFinal.deltas?.state?.suspicion ?? state.stateText.suspicion) -
+                state.stateText.suspicion
+            ),
+            tension: Math.abs(
+              (packetFinal.deltas?.state?.tension ?? state.stateText.tension) -
+                state.stateText.tension
+            ),
+            clock: Math.abs(
+              (packetFinal.deltas?.state?.clock ?? state.stateText.clock) - state.stateText.clock
+            ),
+            risk: Math.abs(
+              (packetFinal.deltas?.state?.risk ?? state.stateText.risk) - state.stateText.risk
+            )
+          },
           imponderable_fired: result.wed?.fired ?? false,
           imponderable_event_id: result.wed?.eventId ?? null,
-          imponderable_skip_reason: result.wed?.skipReason ?? null
+          imponderable_skip_reason: result.wed?.skipReason ?? null,
+          wed_enabled: (process.env.WED_ENABLED ?? 'true').toLowerCase() === 'true'
         })
       },
       {
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'turn_idempotent_hit',
@@ -298,6 +345,8 @@ export class TurnsService {
       {
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'variability_applied',
@@ -310,6 +359,8 @@ export class TurnsService {
       {
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'narrative_rendered',
@@ -324,6 +375,8 @@ export class TurnsService {
       {
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'memory_updated',
@@ -332,6 +385,31 @@ export class TurnsService {
       {
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
+        sessionId: dto.sessionId,
+        turnId: dto.turnId,
+        eventName: 'wed_evaluated',
+        payloadJson: asJson({
+          fired: result.wed?.fired ?? false,
+          reason: result.wed?.skipReason ?? null,
+          matchedCandidates: packetFinal.worldEvent?.matchedCandidates ?? 0,
+          totalEvents: packetFinal.worldEvent?.totalEvents ?? 0,
+          sceneId: packetFinal.scene.sceneId,
+          beatId: packetFinal.scene.beatId,
+          budgetsUsed: {
+            scene: packetFinal.worldEvent?.sceneBudgetUsed ?? { soft: 0, strong: 0 },
+            capsule: packetFinal.worldEvent?.capsuleBudgetUsed ?? { soft: 0, strong: 0 }
+          },
+          mixCounts: packetFinal.worldEvent?.mixCounts ?? { help: 0, shift: 0, friction: 0 },
+          cooldowns: packetFinal.worldEvent?.cooldowns ?? {}
+        })
+      },
+      {
+        ts: new Date(),
+        source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: result.wed?.fired ? 'imponderable_fired' : 'imponderable_skipped',
@@ -343,12 +421,26 @@ export class TurnsService {
                 intensity: result.wed?.intensity,
                 compensationUsed: result.wed?.compensationUsed ?? false,
                 sceneId: packetFinal.scene.sceneId,
-                beatId: packetFinal.scene.beatId
+                beatId: packetFinal.scene.beatId,
+                budgetsUsed: {
+                  scene: packetFinal.worldEvent?.sceneBudgetUsed ?? { soft: 0, strong: 0 },
+                  capsule: packetFinal.worldEvent?.capsuleBudgetUsed ?? { soft: 0, strong: 0 }
+                },
+                mixCounts: packetFinal.worldEvent?.mixCounts ?? { help: 0, shift: 0, friction: 0 },
+                cooldowns: packetFinal.worldEvent?.cooldowns ?? {}
               }
             : {
                 reason: result.wed?.skipReason ?? 'NO_CANDIDATES',
                 sceneId: packetFinal.scene.sceneId,
-                beatId: packetFinal.scene.beatId
+                beatId: packetFinal.scene.beatId,
+                matchedCandidates: packetFinal.worldEvent?.matchedCandidates ?? 0,
+                totalEvents: packetFinal.worldEvent?.totalEvents ?? 0,
+                budgetsUsed: {
+                  scene: packetFinal.worldEvent?.sceneBudgetUsed ?? { soft: 0, strong: 0 },
+                  capsule: packetFinal.worldEvent?.capsuleBudgetUsed ?? { soft: 0, strong: 0 }
+                },
+                mixCounts: packetFinal.worldEvent?.mixCounts ?? { help: 0, shift: 0, friction: 0 },
+                cooldowns: packetFinal.worldEvent?.cooldowns ?? {}
               }
         )
       }
@@ -358,6 +450,8 @@ export class TurnsService {
       await this.telemetryRepo.appendEvent({
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'narrative_fallback',
@@ -369,6 +463,8 @@ export class TurnsService {
       await this.telemetryRepo.appendEvent({
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId,
         sessionId: dto.sessionId,
         turnId: dto.turnId,
         eventName: 'guardrail_reject',
@@ -399,6 +495,6 @@ export class TurnsService {
       })
     );
 
-    return { packet: packetFinal, idempotencyHit: false };
+    return { packet: packetFinal, idempotencyHit: false, narrativeProvider };
   }
 }

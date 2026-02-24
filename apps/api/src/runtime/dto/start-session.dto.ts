@@ -11,4 +11,8 @@ export class StartSessionDto {
   @IsOptional()
   @IsString()
   presetId?: string;
+
+  @IsOptional()
+  @IsString()
+  seed?: string;
 }

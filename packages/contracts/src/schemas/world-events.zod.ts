@@ -118,3 +118,26 @@ export function validateWorldEventCatalog(
   }
   return { ok: true, value: parsed.data };
 }
+
+export interface WorldEventCatalogValidationIssue {
+  path: string;
+  message: string;
+}
+
+export function validateWorldEventCatalogDetailed(
+  input: unknown
+):
+  | { ok: true; value: z.output<typeof WorldEventCatalogSchema> }
+  | { ok: false; issues: WorldEventCatalogValidationIssue[] } {
+  const parsed = WorldEventCatalogSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      issues: parsed.error.issues.map((issue) => ({
+        path: issue.path.length > 0 ? issue.path.join('.') : '$',
+        message: issue.message
+      }))
+    };
+  }
+  return { ok: true, value: parsed.data };
+}

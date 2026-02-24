@@ -34,14 +34,14 @@ describe('DebugDrawer', () => {
         onTabChange={onTabChange}
       />
     );
-    expect(screen.queryByText('Debug')).toBeNull();
+    expect(screen.queryByText('Depuración')).toBeNull();
 
     rerender(
       <DebugDrawer enabled history={history} onCopyJson={onCopy} onTabChange={onTabChange} />
     );
-    expect(screen.getByText('Debug')).toBeInTheDocument();
+    expect(screen.getByText('Depuración')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'explain' }));
+    fireEvent.click(screen.getByRole('button', { name: 'explicar' }));
     expect(onTabChange).toHaveBeenCalledWith('explain');
   });
 });

@@ -1,4 +1,5 @@
 import { Body, Controller, Logger, Post } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { TelemetryRepo } from '../modules/persistence/telemetry.repo';
 import { ClientTelemetryBatchDto } from './dto/client-telemetry.dto';
@@ -7,12 +8,14 @@ const MAX_BATCH = 50;
 const asJson = (value: unknown): Prisma.InputJsonValue => value as Prisma.InputJsonValue;
 
 @Controller('telemetry')
+@ApiTags('telemetry')
 export class TelemetryController {
   private readonly logger = new Logger(TelemetryController.name);
 
   constructor(private readonly telemetryRepo: TelemetryRepo) {}
 
   @Post('client')
+  @ApiOperation({ summary: 'Ingesta batch de telemetría client-side' })
   async ingestClientTelemetry(@Body() dto: ClientTelemetryBatchDto): Promise<{ accepted: true }> {
     const batch = dto.events.slice(0, MAX_BATCH).map((event) => ({
       ts: new Date(event.ts),

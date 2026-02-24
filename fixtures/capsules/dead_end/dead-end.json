@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "capsuleId": "dead-end",
+  "title": "Dead End",
+  "synopsis": "No options.",
+  "roles": ["operator"],
+  "presets": ["default"],
+  "defaultRoleId": "operator",
+  "defaultPresetId": "default",
+  "initial": {
+    "sceneId": "scene-a",
+    "beatId": "beat-a",
+    "locationId": "location-a",
+    "stateText": {
+      "suspicion": 0,
+      "tension": 0,
+      "clock": 0,
+      "risk": 0
+    }
+  },
+  "scenes": [
+    {
+      "id": "scene-a",
+      "title": "Scene A",
+      "entryText": "Entry",
+      "visual": {
+        "palette": "neutral",
+        "mood": "calm",
+        "backdrop": "room"
+      },
+      "locations": [{ "id": "location-a", "label": "Location A" }]
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "hotspot-a",
+      "label": "Hotspot A",
+      "locationId": "location-a",
+      "verbs": ["OBSERVE"]
+    }
+  ],
+  "beats": [
+    {
+      "id": "beat-a",
+      "sceneId": "scene-a",
+      "title": "Beat A",
+      "allowedVerbs": ["OBSERVE"],
+      "activeHotspots": []
+    }
+  ]
+}

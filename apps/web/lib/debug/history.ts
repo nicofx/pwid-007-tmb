@@ -13,6 +13,9 @@ export function pushTurnHistory(
 export function traceToHistoryTurns(traceTurns: DebugTraceTurn[]): DebugTurnEntry[] {
   return traceTurns.map((turn) => {
     const request = (turn.request ?? {}) as Partial<DebugTurnRequest>;
+    const outcome = (turn.outcome ?? {}) as {
+      narrativeProvider?: 'llm' | 'placeholder' | 'unknown';
+    };
     return {
       seq: turn.seq,
       request: {
@@ -23,6 +26,7 @@ export function traceToHistoryTurns(traceTurns: DebugTraceTurn[]): DebugTurnEntr
         source: 'resume_trace'
       },
       packet: turn.packet,
+      narrativeProvider: outcome.narrativeProvider ?? 'unknown',
       sentAt: turn.createdAt,
       receivedAt: turn.createdAt,
       latencyMs: 0

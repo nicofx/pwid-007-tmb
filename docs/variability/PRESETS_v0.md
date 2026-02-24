@@ -32,9 +32,21 @@ Cada preset usa `PresetDefinition` de `@tmb/contracts`:
 - El engine recibe preset como data (`SelectedPreset`), no lo carga de disco.
 - Carga/lookup vive en API (`FilePresetProvider`).
 
+## Presets Berlin 1933 (MVP)
+
+- `default`: baseline balance.
+- `guided`: higher hints, lower costs.
+- `hardcore`: lower hints, higher costs, tighter success profile.
+- `chaos-lite`: medium hints with swingier tempo/cost profile.
+
 ## QA smoke
 
-En integración (`apps/api/src/runtime/runtime.persistence.int.spec.ts`):
+API integration (`apps/api/src/runtime/runtime.persistence.int.spec.ts`):
 
 - por cada preset de la cápsula: `start` + 10 turnos
 - asserts: no 500, loop estable, packet válido.
+
+CLI smoke runner (sin UI):
+
+- `pnpm qa:presets`
+- guía: `docs/qa/PRESET_QA_GUIDE_v0.md`

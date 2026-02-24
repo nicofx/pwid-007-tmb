@@ -4,6 +4,7 @@ interface IuModalProps {
   activeIU?: TurnPacket['activeIU'];
   isOpen: boolean;
   onSelectApproach: (approach: { id: string; label: string; intentHint?: string }) => void;
+  onRequestClose?: () => void;
 }
 
 export function IuModal(props: IuModalProps): React.ReactElement | null {
@@ -12,7 +13,18 @@ export function IuModal(props: IuModalProps): React.ReactElement | null {
   }
 
   return (
-    <div className="iu-modal-backdrop" role="dialog" aria-modal="true" aria-label="IU modal">
+    <div
+      className="iu-modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Modal IU"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          props.onRequestClose?.();
+        }
+      }}
+      tabIndex={-1}
+    >
       <article className="iu-modal-card">
         <h2>{props.activeIU.title}</h2>
         <p>{props.activeIU.brief}</p>

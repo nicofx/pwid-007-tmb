@@ -59,6 +59,7 @@ export interface IRuntimeDeps {
 export interface IStateFactory {
   createInitial(params: {
     sessionId: string;
+    seed: string;
     capsule: CapsuleSchema;
     roleId?: string;
     presetId?: string;

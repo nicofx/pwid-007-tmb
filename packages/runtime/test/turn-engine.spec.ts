@@ -74,7 +74,11 @@ describe('TurnEngine invariants', () => {
     };
 
     const engine = new TurnEngine(deps, new SessionStateFactory());
-    const started = await engine.startSession({ sessionId: 'sess-1', capsuleId: 'c1' });
+    const started = await engine.startSession({
+      sessionId: 'sess-1',
+      seed: 'seed-1',
+      capsuleId: 'c1'
+    });
 
     expect(started.packet.affordances).toBeDefined();
     expect(started.packet.narrativeBlocks).toEqual([]);
@@ -108,6 +112,7 @@ describe('TurnEngine invariants', () => {
     const engine = new TurnEngine(deps, new SessionStateFactory());
     const started = await engine.startSession({
       sessionId: 'sess-2',
+      seed: 'seed-2',
       capsuleId: 'c1',
       preset: {
         capsuleId: 'c1',

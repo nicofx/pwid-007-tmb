@@ -2,9 +2,9 @@
   "schemaVersion": "1.0.0",
   "capsuleId": "berlin-1933",
   "title": "Berlin 1933",
-  "synopsis": "Infiltrate a ministry archive and secure leverage before curfew.",
+  "synopsis": "Infiltrate a ministry archive, secure transport proof, and exit before curfew closes the district.",
   "roles": ["reporter", "courier"],
-  "presets": ["default", "stealth"],
+  "presets": ["default", "guided", "hardcore", "chaos-lite"],
   "defaultRoleId": "reporter",
   "defaultPresetId": "default",
   "initial": {
@@ -12,17 +12,17 @@
     "beatId": "arrival",
     "locationId": "tram-stop",
     "stateText": {
-      "suspicion": 10,
-      "tension": 20,
+      "suspicion": 12,
+      "tension": 22,
       "clock": 0,
-      "risk": 15
+      "risk": 16
     }
   },
   "scenes": [
     {
       "id": "street-night",
       "title": "Friedrichstrasse at Night",
-      "entryText": "A wet wind pushes posters against the tram shelter.",
+      "entryText": "Posters slap wet stone. Patrol shifts are late but not absent.",
       "visual": {
         "palette": "cold-amber",
         "mood": "tense",
@@ -36,7 +36,7 @@
     {
       "id": "archive-hall",
       "title": "Archive Hall",
-      "entryText": "Rows of folders and one sleeping clerk.",
+      "entryText": "Paper dust hangs in the air. Every drawer sounds louder than it should.",
       "visual": {
         "palette": "sepia",
         "mood": "quiet",
@@ -44,7 +44,22 @@
       },
       "locations": [
         { "id": "desk", "label": "Duty Desk" },
-        { "id": "records", "label": "Records Shelf" }
+        { "id": "records", "label": "Records Shelf" },
+        { "id": "service-corridor", "label": "Service Corridor" }
+      ]
+    },
+    {
+      "id": "rail-yard",
+      "title": "Rail Yard Exit",
+      "entryText": "Steam and whistles mask movement, but guards now check papers by lantern.",
+      "visual": {
+        "palette": "iron-blue",
+        "mood": "urgent",
+        "backdrop": "rail-yard"
+      },
+      "locations": [
+        { "id": "yard-gate", "label": "Yard Gate" },
+        { "id": "rail-platform", "label": "Service Platform" }
       ]
     }
   ],
@@ -54,8 +69,16 @@
       "label": "Street Officer",
       "locationId": "tram-stop",
       "verbs": ["TALK", "OBSERVE"],
-      "risk": 0.3,
+      "risk": 0.35,
       "rewards": { "leverage": ["officer-habit"] }
+    },
+    {
+      "id": "courier-contact",
+      "label": "Courier Contact",
+      "locationId": "tram-stop",
+      "verbs": ["TALK", "OBSERVE", "WAIT"],
+      "risk": 0.2,
+      "rewards": { "clues": ["contact-route"] }
     },
     {
       "id": "archive-lock",
@@ -66,12 +89,60 @@
       "rewards": { "clues": ["lock-model"] }
     },
     {
+      "id": "service-door",
+      "label": "Service Door",
+      "locationId": "archive-door",
+      "verbs": ["MOVE", "SEARCH", "OBSERVE"],
+      "risk": 0.42,
+      "rewards": { "leverage": ["maintenance-route"] }
+    },
+    {
       "id": "records-ledger",
-      "label": "Ledger",
+      "label": "Transit Ledger",
       "locationId": "records",
       "verbs": ["SEARCH", "OBSERVE", "TAKE"],
-      "risk": 0.2,
+      "risk": 0.25,
       "rewards": { "clues": ["transport-list"], "inventory": ["ledger-page"] }
+    },
+    {
+      "id": "filing-cabinet",
+      "label": "Filing Cabinet",
+      "locationId": "records",
+      "verbs": ["SEARCH", "OBSERVE", "TAKE"],
+      "risk": 0.28,
+      "rewards": { "clues": ["shift-roster"] }
+    },
+    {
+      "id": "sleeping-clerk",
+      "label": "Sleeping Clerk",
+      "locationId": "desk",
+      "verbs": ["OBSERVE", "TALK", "WAIT"],
+      "risk": 0.33,
+      "rewards": { "leverage": ["night-passphrase"] }
+    },
+    {
+      "id": "stamp-desk",
+      "label": "Stamp Desk",
+      "locationId": "desk",
+      "verbs": ["SEARCH", "USE", "TAKE"],
+      "risk": 0.3,
+      "rewards": { "inventory": ["inspection-stamp"] }
+    },
+    {
+      "id": "courtyard-exit",
+      "label": "Courtyard Exit",
+      "locationId": "yard-gate",
+      "verbs": ["MOVE", "OBSERVE", "WAIT"],
+      "risk": 0.4,
+      "rewards": { "leverage": ["exit-window"] }
+    },
+    {
+      "id": "tram-platform",
+      "label": "Platform Guard Post",
+      "locationId": "rail-platform",
+      "verbs": ["MOVE", "TALK", "OBSERVE"],
+      "risk": 0.45,
+      "rewards": { "clues": ["patrol-gap"] }
     }
   ],
   "beats": [
@@ -79,9 +150,37 @@
       "id": "arrival",
       "sceneId": "street-night",
       "title": "Arrival",
-      "entryText": "You need an entry route before patrol rotation.",
+      "entryText": "Objective now: identify a viable entry route before the patrol settles.",
       "allowedVerbs": ["TALK", "OBSERVE", "SEARCH", "MOVE", "WAIT"],
-      "activeHotspots": ["officer", "archive-lock"],
+      "activeHotspots": ["officer", "courier-contact", "archive-lock"],
+      "advanceRules": [
+        {
+          "nextBeatId": "contact-window",
+          "onOutcomes": ["SUCCESS", "PARTIAL"]
+        }
+      ]
+    },
+    {
+      "id": "contact-window",
+      "sceneId": "street-night",
+      "title": "Contact Window",
+      "entryText": "Objective now: confirm timing and pick a breach path.",
+      "allowedVerbs": ["TALK", "OBSERVE", "MOVE", "WAIT", "SEARCH"],
+      "activeHotspots": ["courier-contact", "officer", "service-door"],
+      "advanceRules": [
+        {
+          "nextBeatId": "breach",
+          "onOutcomes": ["SUCCESS", "PARTIAL", "FAIL_FORWARD"]
+        }
+      ]
+    },
+    {
+      "id": "breach",
+      "sceneId": "street-night",
+      "title": "Breach",
+      "entryText": "Objective now: get through archive access with minimal noise.",
+      "allowedVerbs": ["SEARCH", "USE", "MOVE", "OBSERVE", "WAIT"],
+      "activeHotspots": ["archive-lock", "service-door", "officer"],
       "advanceRules": [
         {
           "nextBeatId": "infiltration",
@@ -93,31 +192,86 @@
       "id": "infiltration",
       "sceneId": "archive-hall",
       "title": "Infiltration",
-      "entryText": "Inside, every minute increases exposure.",
+      "entryText": "Objective now: secure the transport evidence and avoid waking the desk.",
       "allowedVerbs": ["SEARCH", "OBSERVE", "TAKE", "MOVE", "WAIT"],
-      "activeHotspots": ["records-ledger"],
+      "activeHotspots": ["records-ledger", "filing-cabinet", "sleeping-clerk"],
       "advanceRules": [
         {
-          "nextBeatId": "exfiltration",
+          "nextBeatId": "ledger-verify",
           "onOutcomes": ["SUCCESS", "PARTIAL"],
           "clockAtLeast": 1
         }
       ]
     },
     {
-      "id": "exfiltration",
+      "id": "ledger-verify",
       "sceneId": "archive-hall",
-      "title": "Exfiltration",
-      "allowedVerbs": ["MOVE", "WAIT", "OBSERVE"],
-      "activeHotspots": ["records-ledger"],
-      "end": {
-        "id": "clean-exit",
-        "title": "Out Before Curfew",
-        "text": "You leave with usable leverage before doors lock.",
-        "conditions": {
-          "clockAtLeast": 1,
-          "requiresClues": ["transport-list"]
+      "title": "Ledger Verify",
+      "entryText": "Objective now: validate names and prepare a clean exit route.",
+      "allowedVerbs": ["SEARCH", "OBSERVE", "TAKE", "MOVE", "USE"],
+      "activeHotspots": ["records-ledger", "stamp-desk", "sleeping-clerk"],
+      "advanceRules": [
+        {
+          "nextBeatId": "exfiltration",
+          "onOutcomes": ["SUCCESS", "PARTIAL", "FAIL_FORWARD"]
         }
+      ]
+    },
+    {
+      "id": "exfiltration",
+      "sceneId": "rail-yard",
+      "title": "Exfiltration",
+      "entryText": "Objective now: cross the yard and board before checks tighten.",
+      "allowedVerbs": ["MOVE", "OBSERVE", "TALK", "WAIT", "USE"],
+      "activeHotspots": ["courtyard-exit", "tram-platform", "service-door"],
+      "advanceRules": [
+        {
+          "nextBeatId": "clean-exit",
+          "onOutcomes": ["SUCCESS", "PARTIAL"],
+          "clockAtLeast": 3
+        },
+        {
+          "nextBeatId": "caught-at-gate",
+          "onOutcomes": ["FAIL_FORWARD"],
+          "clockAtLeast": 2
+        }
+      ]
+    },
+    {
+      "id": "clean-exit",
+      "sceneId": "rail-yard",
+      "title": "Final Crossing",
+      "entryText": "Objective now: commit to a final move with your evidence intact.",
+      "allowedVerbs": ["MOVE", "OBSERVE", "TALK", "WAIT"],
+      "activeHotspots": ["courtyard-exit", "tram-platform"],
+      "advanceRules": [
+        {
+          "nextBeatId": "caught-at-gate",
+          "onOutcomes": ["FAIL_FORWARD", "PARTIAL"],
+          "clockAtLeast": 4
+        }
+      ],
+      "end": {
+        "id": "escape-with-proof",
+        "title": "Out With Proof",
+        "text": "You board with names, routes, and just enough cover to survive the week.",
+        "conditions": {
+          "clockAtLeast": 3,
+          "requiresClues": ["transport-list"],
+          "requiresLeverage": ["officer-habit"]
+        }
+      }
+    },
+    {
+      "id": "caught-at-gate",
+      "sceneId": "rail-yard",
+      "title": "Gate Check",
+      "allowedVerbs": ["WAIT", "OBSERVE"],
+      "activeHotspots": ["tram-platform", "courtyard-exit"],
+      "end": {
+        "id": "detained-at-gate",
+        "title": "Detained at the Gate",
+        "text": "The lantern stops on your papers. You are escorted away, but your contact keeps a copy alive."
       }
     }
   ],
@@ -127,7 +281,7 @@
         "eventId": "help_informer_whisper",
         "flavor": "help",
         "intensity": "soft",
-        "allowedBeats": ["arrival"],
+        "allowedBeats": ["arrival", "contact-window"],
         "triggers": {
           "allOf": [
             { "kind": "state", "metric": "tension", "op": "gte", "value": 20 },
@@ -159,7 +313,7 @@
         "eventId": "help_courtyard_shadow",
         "flavor": "help",
         "intensity": "strong",
-        "allowedBeats": ["infiltration"],
+        "allowedBeats": ["infiltration", "ledger-verify"],
         "cooldownKey": "strong_help",
         "triggers": {
           "allOf": [
@@ -168,7 +322,7 @@
           ]
         },
         "effects": {
-          "toggleHotspots": { "enable": ["records-ledger"] },
+          "toggleHotspots": { "enable": ["records-ledger", "courtyard-exit"] },
           "stateDelta": { "suspicion": -3, "risk": -4 }
         },
         "fairnessCompensation": true,
@@ -194,13 +348,13 @@
         "eventId": "shift_records_cart_arrives",
         "flavor": "shift",
         "intensity": "soft",
-        "allowedBeats": ["infiltration"],
+        "allowedBeats": ["infiltration", "ledger-verify"],
         "triggers": {
           "allOf": [{ "kind": "state", "metric": "clock", "op": "gte", "value": 1 }]
         },
         "effects": {
           "stateDelta": { "risk": 2 },
-          "toggleHotspots": { "enable": ["records-ledger"] }
+          "toggleHotspots": { "enable": ["records-ledger", "stamp-desk"] }
         },
         "diegeticTextTemplate": "A records cart rattles in, changing cover and sightlines around the shelf."
       },
@@ -208,7 +362,7 @@
         "eventId": "shift_clerk_patrol_route",
         "flavor": "shift",
         "intensity": "strong",
-        "allowedBeats": ["exfiltration"],
+        "allowedBeats": ["exfiltration", "clean-exit"],
         "cooldownKey": "strong_shift",
         "triggers": {
           "allOf": [{ "kind": "state", "metric": "risk", "op": "gte", "value": 16 }]
@@ -241,14 +395,14 @@
         "eventId": "friction_lock_jams",
         "flavor": "friction",
         "intensity": "strong",
-        "allowedBeats": ["arrival", "infiltration"],
+        "allowedBeats": ["arrival", "breach"],
         "cooldownKey": "strong_friction",
         "triggers": {
           "allOf": [{ "kind": "state", "metric": "clock", "op": "gte", "value": 1 }]
         },
         "effects": {
           "stateDelta": { "tension": 4, "risk": 3 },
-          "toggleHotspots": { "disable": ["archive-lock"], "enable": ["officer"] },
+          "toggleHotspots": { "disable": ["archive-lock"], "enable": ["officer", "service-door"] },
           "addClue": ["lock-model"]
         },
         "fairnessCompensation": true,

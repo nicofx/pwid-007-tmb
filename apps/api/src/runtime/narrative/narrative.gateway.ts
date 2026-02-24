@@ -3,6 +3,7 @@ import type { NarrativeBlock, TurnPacket } from '@tmb/contracts';
 import { PlaceholderNarrativeService } from './placeholder-narrative.service';
 import type { NarrativeContext, NarrativeMode, NarrativeRenderMetadata } from './narrative.types';
 import { LlmNarrativeProvider, NarrativeProviderError } from './providers/llm-narrative.provider';
+import { RuntimeConfigStore } from '../runtime-config.store';
 
 interface CachedNarrative {
   blocks: NarrativeBlock[];
@@ -16,7 +17,8 @@ export class NarrativeGateway {
 
   constructor(
     private readonly placeholder: PlaceholderNarrativeService,
-    private readonly llmProvider: LlmNarrativeProvider
+    private readonly llmProvider: LlmNarrativeProvider,
+    private readonly runtimeConfigStore: RuntimeConfigStore
   ) {}
 
   async renderTurnNarrative(params: {
@@ -59,7 +61,7 @@ export class NarrativeGateway {
     try {
       const llmResult = await this.withTimeout(
         this.llmProvider.render(params.ctx),
-        Number(process.env.NARRATIVE_TIMEOUT_MS ?? 1600)
+        this.runtimeConfigStore.get().narrativeTimeoutMs
       );
 
       this.setCache(cacheKey, { blocks: llmResult.blocks, provider: 'llm' });
@@ -108,15 +110,11 @@ export class NarrativeGateway {
   }
 
   private getMode(): NarrativeMode {
-    const value = (process.env.NARRATIVE_MODE ?? 'placeholder').toLowerCase();
-    if (value === 'llm' || value === 'hybrid') {
-      return value;
-    }
-    return 'placeholder';
+    return this.runtimeConfigStore.get().narrativeMode;
   }
 
   private setCache(key: string, value: CachedNarrative): void {
-    const max = Number(process.env.NARRATIVE_CACHE_SIZE ?? 500);
+    const max = this.runtimeConfigStore.get().narrativeCacheSize;
     if (this.cache.has(key)) {
       this.cache.delete(key);
     }

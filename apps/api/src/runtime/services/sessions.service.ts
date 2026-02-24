@@ -18,6 +18,7 @@ import type { StartSessionDto } from '../dto/start-session.dto';
 import { MemoryService } from '../narrative/memory.service';
 import { NarrativeContextBuilder } from '../narrative/narrative-context.builder';
 import { NarrativeGateway } from '../narrative/narrative.gateway';
+import { ProfileService } from './profile.service';
 import { RuntimeEngineFactory } from './runtime-engine.factory';
 
 const SNAPSHOT_EVERY = Number(process.env.SNAPSHOT_EVERY_TURNS ?? 5);
@@ -35,14 +36,20 @@ export class SessionsService {
     private readonly presetProvider: FilePresetProvider,
     private readonly narrativeContextBuilder: NarrativeContextBuilder,
     private readonly narrativeGateway: NarrativeGateway,
-    private readonly memoryService: MemoryService
+    private readonly memoryService: MemoryService,
+    private readonly profileService: ProfileService
   ) {}
 
   async getCapsulePresets(capsuleId: string) {
     return this.presetProvider.getPresets(capsuleId);
   }
 
-  async startSession(dto: StartSessionDto): Promise<{ sessionId: string; packet: TurnPacket }> {
+  async startSession(dto: StartSessionDto, deviceId: string): Promise<{
+    sessionId: string;
+    seed: string;
+    packet: TurnPacket;
+    profileId: string;
+  }> {
     const engine = this.engineFactory.create();
     const sessionId = randomUUID();
 
@@ -53,8 +60,11 @@ export class SessionsService {
         presetId: dto.presetId ?? capsule.defaultPresetId
       });
 
+      const seed = dto.seed?.trim() || `${sessionId}:${dto.capsuleId}:${selectedPreset.presetId}`;
+
       const { state, packet: packetBase } = await engine.startSession({
         sessionId,
+        seed,
         capsuleId: dto.capsuleId,
         roleId: dto.roleId,
         presetId: selectedPreset.presetId,
@@ -82,12 +92,13 @@ export class SessionsService {
         narrativeBlocks: rendered.blocks
       };
 
-      const seed = `${sessionId}:${dto.capsuleId}:${selectedPreset.presetId}`;
+      const profile = await this.profileService.getOrCreate(deviceId);
 
       await this.prisma.$transaction(async (tx) => {
         await tx.session.create({
           data: {
             id: sessionId,
+            profileId: profile.id,
             capsuleId: dto.capsuleId,
             presetId: selectedPreset.presetId,
             seed,
@@ -125,6 +136,8 @@ export class SessionsService {
       await this.telemetryRepo.appendEvent({
         ts: new Date(),
         source: 'server',
+        deviceId,
+        profileId: profile.id,
         sessionId,
         eventName: 'preset_selected',
         payloadJson: asJson({
@@ -134,10 +147,36 @@ export class SessionsService {
         })
       });
 
+      await this.telemetryRepo.appendEvent({
+        ts: new Date(),
+        source: 'server',
+        deviceId,
+        profileId: profile.id,
+        sessionId,
+        eventName: 'session_seed_set',
+        payloadJson: asJson({ seed, custom: Boolean(dto.seed?.trim()) })
+      });
+
+      await this.telemetryRepo.appendEvent({
+        ts: new Date(),
+        source: 'server',
+        deviceId,
+        profileId: profile.id,
+        sessionId,
+        eventName: 'session_started',
+        payloadJson: asJson({
+          capsuleId: dto.capsuleId,
+          presetId: selectedPreset.presetId,
+          seed
+        })
+      });
+
       if (selectedPreset.clamped) {
         await this.telemetryRepo.appendEvent({
           ts: new Date(),
           source: 'server',
+          deviceId,
+          profileId: profile.id,
           sessionId,
           eventName: 'preset_clamped',
           payloadJson: asJson({
@@ -147,7 +186,7 @@ export class SessionsService {
         });
       }
 
-      return { sessionId, packet };
+      return { sessionId, seed, profileId: profile.id, packet };
     } catch (error) {
       if (error instanceof Error && error.message.includes('CAPSULE_NOT_FOUND')) {
         throw ApiError.capsuleNotFound(dto.capsuleId);
@@ -156,10 +195,11 @@ export class SessionsService {
     }
   }
 
-  async resumeSession(sessionId: string): Promise<{
+  async resumeSession(sessionId: string, deviceId?: string): Promise<{
     sessionId: string;
     capsuleId: string;
     presetId?: string;
+    seed: string;
     lastTurnSeq: number;
     packet: TurnPacket;
   }> {
@@ -171,6 +211,8 @@ export class SessionsService {
     await this.telemetryRepo.appendEvent({
       ts: new Date(),
       source: 'server',
+      deviceId,
+      profileId: session.profileId ?? undefined,
       sessionId,
       eventName: 'session_resumed',
       payloadJson: asJson({ lastTurnSeq: session.lastTurnSeq, presetId: session.presetId })
@@ -180,8 +222,32 @@ export class SessionsService {
       sessionId: session.id,
       capsuleId: session.capsuleId,
       presetId: session.presetId ?? undefined,
+      seed: session.seed,
       lastTurnSeq: session.lastTurnSeq,
       packet: jsonToTurnPacket(session.lastPacketJson)
+    };
+  }
+
+  async getCapsuleOverview(capsuleId: string): Promise<{
+    capsuleId: string;
+    title: string;
+    scenes: Array<{ id: string; title: string; beatIds: string[] }>;
+    hotspots: Array<{ id: string; label: string; locationId: string }>;
+  }> {
+    const capsule = await this.capsuleProvider.getCapsule(capsuleId);
+    return {
+      capsuleId: capsule.capsuleId,
+      title: capsule.title,
+      scenes: capsule.scenes.map((scene) => ({
+        id: scene.id,
+        title: scene.title,
+        beatIds: capsule.beats.filter((beat) => beat.sceneId === scene.id).map((beat) => beat.id)
+      })),
+      hotspots: capsule.hotspots.map((hotspot) => ({
+        id: hotspot.id,
+        label: hotspot.label,
+        locationId: hotspot.locationId
+      }))
     };
   }
 

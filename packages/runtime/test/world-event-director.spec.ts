@@ -13,7 +13,18 @@ const baseEvent = (partial: Partial<WorldEventDefinition>): WorldEventDefinition
   ...partial
 });
 
-const capsule = (events: WorldEventDefinition[]): CapsuleSchema => ({
+const capsule = (
+  events: WorldEventDefinition[],
+  overrides?: {
+    budget?: {
+      sceneStrongMax?: number;
+      sceneSoftMax?: number;
+      capsuleStrongMax?: number;
+      capsuleSoftMax?: number;
+      strongCooldownTurns?: number;
+    };
+  }
+): CapsuleSchema => ({
   schemaVersion: '1.0.0',
   capsuleId: 'capsule',
   title: 'c',
@@ -51,11 +62,11 @@ const capsule = (events: WorldEventDefinition[]): CapsuleSchema => ({
     events,
     overrides: {
       budget: {
-        sceneStrongMax: 1,
-        sceneSoftMax: 2,
-        capsuleStrongMax: 2,
-        capsuleSoftMax: 4,
-        strongCooldownTurns: 0
+        sceneStrongMax: overrides?.budget?.sceneStrongMax ?? 1,
+        sceneSoftMax: overrides?.budget?.sceneSoftMax ?? 2,
+        capsuleStrongMax: overrides?.budget?.capsuleStrongMax ?? 2,
+        capsuleSoftMax: overrides?.budget?.capsuleSoftMax ?? 4,
+        strongCooldownTurns: overrides?.budget?.strongCooldownTurns ?? 0
       }
     }
   }
@@ -63,6 +74,7 @@ const capsule = (events: WorldEventDefinition[]): CapsuleSchema => ({
 
 const state = (): SessionState => ({
   sessionId: 's1',
+  seed: 'seed-s1',
   capsuleId: 'capsule',
   roleId: 'r',
   presetId: 'default',
@@ -195,5 +207,73 @@ describe('WorldEventDirector', () => {
 
     expect(result.fired).toBe(false);
     expect(result.skipReason).toBe('FAIRNESS');
+  });
+
+  it('enforces strong cooldown for three turns when configured', () => {
+    const director = new WorldEventDirector();
+    const event = baseEvent({
+      eventId: 'strong-cooldown',
+      intensity: 'strong',
+      cooldownKey: 'strong-key'
+    });
+    const cap = capsule([event], { budget: { strongCooldownTurns: 3, sceneStrongMax: 5 } });
+    const rng = new SeededRngFactory().create('seed-cooldown');
+
+    const first = director.maybeApply({
+      context: context(state()),
+      state: state(),
+      capsule: cap,
+      rng,
+      deltas: {},
+      affordances: {
+        activeLocations: ['loc-a'],
+        activeHotspots: ['hs-a'],
+        allowedVerbs: ['OBSERVE'],
+        suggestedActions: [{ verb: 'OBSERVE', targetId: 'hs-a', reason: 'r' }]
+      }
+    });
+    expect(first.fired).toBe(true);
+
+    const second = director.maybeApply({
+      context: context(first.state),
+      state: first.state,
+      capsule: cap,
+      rng,
+      deltas: {},
+      affordances: {
+        activeLocations: ['loc-a'],
+        activeHotspots: ['hs-a'],
+        allowedVerbs: ['OBSERVE'],
+        suggestedActions: [{ verb: 'OBSERVE', targetId: 'hs-a', reason: 'r' }]
+      }
+    });
+    expect(second.fired).toBe(false);
+    expect(second.skipReason).toBe('COOLDOWN');
+  });
+
+  it('skips repeated candidate when anti-repeat has no alternative', () => {
+    const director = new WorldEventDirector();
+    const repeated = baseEvent({ eventId: 'repeat-me', flavor: 'shift', intensity: 'soft' });
+    const cap = capsule([repeated], { budget: { sceneSoftMax: 5, capsuleSoftMax: 5 } });
+    const s = state();
+    s.wed.recentEvents = ['shift:repeat-me'];
+    const rng = new SeededRngFactory().create('seed-repeat');
+
+    const result = director.maybeApply({
+      context: context(s),
+      state: s,
+      capsule: cap,
+      rng,
+      deltas: {},
+      affordances: {
+        activeLocations: ['loc-a'],
+        activeHotspots: ['hs-a'],
+        allowedVerbs: ['OBSERVE'],
+        suggestedActions: [{ verb: 'OBSERVE', targetId: 'hs-a', reason: 'r' }]
+      }
+    });
+
+    expect(result.fired).toBe(false);
+    expect(result.skipReason).toBe('ANTI_REPEAT');
   });
 });

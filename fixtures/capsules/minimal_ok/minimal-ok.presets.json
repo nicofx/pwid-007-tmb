@@ -1,0 +1,14 @@
+[
+  {
+    "id": "default",
+    "label": "Default",
+    "description": "Baseline",
+    "dials": {
+      "riskTolerance": 0.5,
+      "costSeverity": 0.5,
+      "hintDensity": 0.5,
+      "pacing": 0.5
+    },
+    "tags": ["baseline"]
+  }
+]

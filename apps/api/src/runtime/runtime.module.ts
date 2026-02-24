@@ -16,17 +16,34 @@ import { RunSummaryService } from './narrative/run-summary.service';
 import { SceneSummaryService } from './narrative/scene-summary.service';
 import { LlmNarrativeProvider } from './narrative/providers/llm-narrative.provider';
 import { DebugController } from './debug.controller';
+import { AdminConfigController } from './admin-config.controller';
+import { AdminBalanceController } from './admin-balance.controller';
+import { AdminGuard } from './admin.guard';
+import { HistoryController } from './history.controller';
+import { ProfileController } from './profile.controller';
 import { SessionsController } from './sessions.controller';
 import { DebugService } from './services/debug.service';
+import { HistoryService } from './services/history.service';
+import { ProfileService } from './services/profile.service';
 import { RuntimeEngineFactory } from './services/runtime-engine.factory';
 import { SessionsService } from './services/sessions.service';
 import { TelemetryController } from './telemetry.controller';
 import { TurnsService } from './services/turns.service';
 import { TurnsController } from './turns.controller';
+import { RuntimeConfigStore } from './runtime-config.store';
 
 @Module({
   imports: [PersistenceModule],
-  controllers: [SessionsController, TurnsController, TelemetryController, DebugController],
+  controllers: [
+    SessionsController,
+    TurnsController,
+    TelemetryController,
+    DebugController,
+    AdminConfigController,
+    AdminBalanceController,
+    HistoryController,
+    ProfileController
+  ],
   providers: [
     FileCapsuleProvider,
     FilePresetProvider,
@@ -35,6 +52,8 @@ import { TurnsController } from './turns.controller';
     DbTelemetrySink,
     RuntimeEngineFactory,
     DebugService,
+    HistoryService,
+    ProfileService,
     SessionsService,
     TurnsService,
     NarrativeContextBuilder,
@@ -46,7 +65,9 @@ import { TurnsController } from './turns.controller';
     PostalComposerService,
     LlmNarrativeProvider,
     HttpLlmAdapter,
-    MockLlmAdapter
+    MockLlmAdapter,
+    RuntimeConfigStore,
+    AdminGuard
   ]
 })
 export class RuntimeModule {}

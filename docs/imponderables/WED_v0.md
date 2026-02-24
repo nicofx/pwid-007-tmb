@@ -30,6 +30,7 @@ Skip reasons:
 - `BUDGET`
 - `COOLDOWN`
 - `MIX_CORRECTION`
+- `ANTI_REPEAT`
 - `FAIRNESS`
 
 ## Mix target
@@ -66,3 +67,4 @@ Si hay 2 friction seguidos, se corrige hacia help/shift cuando hay candidatos.
 3. Friction debe tener compensación (`fairnessCompensation` o clue/leverage/opción viable).
 4. Probar con `pnpm --filter api test:integration`.
 5. Verificar telemetría `imponderable_fired|imponderable_skipped`.
+6. Verificar `wed_evaluated` por turno con snapshot de budgets/mix/cooldowns.

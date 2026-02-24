@@ -21,7 +21,7 @@ export interface TurnPacketViewModel {
 
 const FALLBACK_BLOCK: NarrativeBlock = {
   kind: 'SYSTEM',
-  text: 'No narrative blocks were returned by the runtime.'
+  text: 'El runtime no devolvió bloques narrativos.'
 };
 
 export function toTurnPacketViewModel(packet: TurnPacket): TurnPacketViewModel {
@@ -32,7 +32,7 @@ export function toTurnPacketViewModel(packet: TurnPacket): TurnPacketViewModel {
 
   const objectiveNow =
     packet.affordances?.suggestedActions[0]?.reason ??
-    (packet.end ? 'Review ending details' : 'Probe the current beat');
+    (packet.end ? 'Revisar detalles del final' : 'Explorar el tramo actual');
 
   return {
     sceneTitle: packet.scene.sceneTitle,

@@ -27,7 +27,7 @@ describe('buildExplainBullets', () => {
   it('explains blocked turns with suggestion and wed skip reason', () => {
     const diff = buildTurnDiff(null, packet);
     const bullets = buildExplainBullets({ packet, diff });
-    expect(bullets.some((line) => line.includes('blocked'))).toBe(true);
-    expect(bullets.some((line) => line.includes('WED skipped'))).toBe(true);
+    expect(bullets.some((line) => line.includes('Bloqueado') || line.includes('bloquead'))).toBe(true);
+    expect(bullets.some((line) => line.includes('WED se omitió'))).toBe(true);
   });
 });

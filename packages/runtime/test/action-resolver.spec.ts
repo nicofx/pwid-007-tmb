@@ -46,6 +46,7 @@ const capsule: CapsuleSchema = {
 
 const state = {
   sessionId: 's',
+  seed: 'seed-s',
   capsuleId: 'test',
   roleId: 'r',
   presetId: 'p',

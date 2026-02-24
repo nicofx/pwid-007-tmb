@@ -15,7 +15,7 @@ function renderDialogue(block: NarrativeBlock, index: number): React.ReactNode {
   return (
     <article key={`dialogue-${index}`} className="narrative-block narrative-dialogue">
       <p>
-        <strong>{block.speaker ?? 'Unknown'}:</strong> {block.text}
+        <strong>{block.speaker ?? 'Desconocido'}:</strong> {block.text}
       </p>
     </article>
   );

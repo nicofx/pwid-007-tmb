@@ -22,6 +22,8 @@ export interface WorldEventApplyResult {
   intensity?: 'soft' | 'strong';
   skipReason?: WedSkipReason;
   compensationUsed?: boolean;
+  matchedCandidates: number;
+  totalEvents: number;
 }
 
 const DEFAULT_BUDGET: WedBudgetConfig = {
@@ -58,7 +60,9 @@ export class WorldEventDirector {
         deltas: params.deltas,
         affordances: params.affordances,
         fired: false,
-        skipReason: 'WED_DISABLED'
+        skipReason: 'WED_DISABLED',
+        matchedCandidates: 0,
+        totalEvents: 0
       };
     }
 
@@ -101,7 +105,9 @@ export class WorldEventDirector {
         deltas: params.deltas,
         affordances: params.affordances,
         fired: false,
-        skipReason: selected.skipReason
+        skipReason: selected.skipReason,
+        matchedCandidates: candidates.length,
+        totalEvents: events.length
       };
     }
 
@@ -125,7 +131,9 @@ export class WorldEventDirector {
         deltas: params.deltas,
         affordances: params.affordances,
         fired: false,
-        skipReason: 'FAIRNESS'
+        skipReason: 'FAIRNESS',
+        matchedCandidates: candidates.length,
+        totalEvents: events.length
       };
     }
 
@@ -148,7 +156,9 @@ export class WorldEventDirector {
       eventId: selected.event.eventId,
       flavor: selected.event.flavor,
       intensity: selected.event.intensity,
-      compensationUsed: applied.compensationUsed
+      compensationUsed: applied.compensationUsed,
+      matchedCandidates: candidates.length,
+      totalEvents: events.length
     };
   }
 

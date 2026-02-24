@@ -73,6 +73,13 @@ export interface TurnPacket {
     intensity?: 'soft' | 'strong';
     skipReason?: string;
     compensationUsed?: boolean;
+    matchedCandidates?: number;
+    totalEvents?: number;
+    sceneBudgetUsed?: { soft: number; strong: number };
+    capsuleBudgetUsed?: { soft: number; strong: number };
+    mixCounts?: { help: number; shift: number; friction: number };
+    cooldowns?: Record<string, number>;
+    recentEvents?: string[];
   };
   end?: {
     endingId: string;
